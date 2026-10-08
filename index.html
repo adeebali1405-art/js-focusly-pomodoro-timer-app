@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Focusly — a customizable Pomodoro timer with a circular progress ring, custom colors and fonts.">
+<meta name="theme-color" content="#1e213f">
+<title>Focusly · Pomodoro Timer By Adeeb Ali Softwer Developer</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍅</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kumbh+Sans:wght@400;700&family=Roboto+Slab:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1e213f; --panel:#161932; --ink:#d7e0ff; --muted:#838fc0; --accent:#f87070;
+  --font:'Kumbh Sans',sans-serif;
+  --ring:316px; --r:46;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0}
+html{min-height:100%}
+body{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(1.5rem,5vh,3rem);
+  padding:2rem 1.25rem;background:var(--bg);color:var(--ink);font-family:var(--font);
+  transition:background .4s;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:12px}
+h1{font-size:1.6rem;letter-spacing:-.02em;display:flex;align-items:center;gap:.6rem;font-weight:700}
+h1 svg{width:1.6rem;height:1.6rem;color:var(--accent)}
+
+/* mode tabs */
+.tabs{display:flex;gap:.25rem;padding:.5rem;border-radius:2rem;background:var(--panel);position:relative;isolation:isolate}
+.tab{flex:1;min-width:max-content;padding:1rem 1.6rem;border-radius:2rem;font-size:.85rem;font-weight:700;color:var(--muted);transition:color .3s;position:relative;z-index:1}
+.tab[aria-selected=true]{color:var(--bg)}
+.pill{position:absolute;z-index:0;top:.5rem;bottom:.5rem;left:0;border-radius:2rem;background:var(--accent);transition:transform .35s cubic-bezier(.5,1.4,.5,1),width .35s,background .3s;pointer-events:none}
+
+/* timer dial */
+.dial{
+  width:min(410px,86vw);aspect-ratio:1;border-radius:50%;padding:7%;
+  background:linear-gradient(315deg,#2e325a 0%,#0e112a 100%);
+  box-shadow:-50px -50px 100px #272c5a,50px 50px 100px #121530;
+}
+.face{position:relative;width:100%;height:100%;border-radius:50%;background:var(--panel);display:grid;place-items:center;overflow:hidden;}
+.face svg{position:absolute;inset:4%;width:92%;height:92%;transform:rotate(-90deg)}
+.track{fill:none;stroke:#1e2140;stroke-width:3}
+.bar{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;transition:stroke .3s}
+.readout{position:relative;text-align:center;display:grid;gap:.4rem;justify-items:center;width:100%;padding:0 1rem;}
+.time{font-size:clamp(2.5rem,12vw,4.2rem);font-weight:700;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums;word-break:keep-all;}
+.toggle{font-size:clamp(.9rem,3vw,1rem);font-weight:700;letter-spacing:.9em;margin-right:-.9em;padding:.5rem 1rem;text-transform:uppercase;transition:color .25s}
+.toggle:hover{color:var(--accent)}
+.dial.done .bar{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+.meta{display:flex;gap:1.5rem;color:var(--muted);font-size:.9rem}
+.meta b{color:var(--ink)}
+.cog{color:var(--muted);transition:color .25s,transform .6s}
+.cog:hover{color:var(--ink);transform:rotate(90deg)}
+.cog svg{width:28px;height:28px;display:block}
+
+/* settings modal */
+dialog{
+  margin:auto;width:min(540px,calc(100vw - 2rem));padding:0;border:0;border-radius:25px;color:#161932;background:#fff;
+  box-shadow:0 40px 100px rgba(10,12,90,.5);overflow:hidden;
+}
+dialog::backdrop{background:rgba(10,12,28,.6);backdrop-filter:blur(3px)}
+dialog[open]{animation:pop .3s cubic-bezier(.2,1.2,.4,1)}
+@keyframes pop{from{opacity:0;transform:translateY(20px) scale(.97)}}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:1.6rem 2rem;border-bottom:1px solid #e3e1e1}
+.mh h2{font-size:1.6rem}
+.mh button{opacity:.5;transition:opacity .2s}.mh button:hover{opacity:1}
+.mh svg{width:16px;height:16px;display:block}
+.mb{padding:1.5rem 2rem 2rem;display:grid;gap:1.4rem}
+.group{display:grid;gap:1rem;padding-bottom:1.4rem;border-bottom:1px solid #e3e1e1}
+.group:last-child{border:0;padding:0}
+.group h3{font-size:.8rem;letter-spacing:.3em;text-transform:uppercase;color:#1e213f}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.num{display:grid;gap:.5rem;font-size:.75rem;font-weight:700;color:#1e213f80}
+.stepper{position:relative}
+.stepper input{width:100%;padding:.9rem 2.2rem .9rem 1rem;border:0;border-radius:10px;background:#eff1fa;color:#1e213f;font:700 .9rem var(--font);-moz-appearance:textfield}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none}
+.stepper div{position:absolute;right:.7rem;top:50%;transform:translateY(-50%);display:grid;gap:.45rem}
+.stepper button{width:14px;height:8px;opacity:.35;transition:opacity .2s;line-height:0}
+.stepper button:hover{opacity:1}
+.row{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.row span{font-size:.75rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+.opts{display:flex;gap:1rem}
+.opts label{position:relative;cursor:pointer}
+.opts input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.opts .sw{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#eff1fa;color:#1e213f;font-size:.95rem;font-weight:700;transition:background .2s,color .2s,box-shadow .2s}
+.opts input:checked+.sw{background:#161932;color:#fff}
+.opts input:focus-visible+.sw{outline:3px solid #1e213f;outline-offset:3px}
+.opts input:not(:checked)+.sw:hover{box-shadow:0 0 0 1px #eff1fa}
+.sw.f1{font-family:'Kumbh Sans',sans-serif}.sw.f2{font-family:'Roboto Slab',serif}.sw.f3{font-family:'Space Mono',monospace}
+.sw.c{color:#161932}.sw svg{width:15px;height:15px;opacity:0;stroke:#161932;fill:none;stroke-width:2.4}
+.opts input:checked+.sw svg{opacity:1}
+.apply{
+  display:block;width:calc(100% - 4rem);margin:0 auto 2rem;padding:1rem;border-radius:2rem;
+  background:var(--accent);color:#fff;font-weight:700;transition:filter .2s;cursor:pointer;text-align:center;
+}
+.apply:hover{filter:brightness(1.12)}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translate(-50%,200%);padding:.8rem 1.4rem;background:var(--panel);border-radius:2rem;font-size:.9rem;transition:transform .4s cubic-bezier(.2,1.2,.4,1)}
+.toast.show{transform:translate(-50%,0)}
+@media(max-width:480px){.tab{padding:.9rem 1rem;font-size:.75rem}.mb,.mh{padding-inline:1.4rem}.nums{grid-template-columns:1fr}.row{flex-direction:column;align-items:flex-start}.apply{width:calc(100% - 2.8rem)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<h1>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7c-1-2-3-3-5-3 0 2 2 3 5 3Zm0 0c1-2 3-3 5-3 0 2-2 3-5 3Z"/><circle cx="12" cy="14" r="7"/></svg>
+  Focusly By Adeeb Ali Softwer Developer
+</h1>
+
+<div class="tabs" role="tablist" aria-label="Timer mode">
+  <span class="pill" id="pill"></span>
+  <button class="tab" role="tab" data-mode="pomodoro" aria-selected="true">pomodoro</button>
+  <button class="tab" role="tab" data-mode="short" aria-selected="false">short break</button>
+  <button class="tab" role="tab" data-mode="long" aria-selected="false">long break</button>
+</div>
+
+<main class="dial" id="dial">
+  <div class="face">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle class="track" cx="50" cy="50" r="46"/>
+      <circle class="bar" id="bar" cx="50" cy="50" r="46" pathLength="1" stroke-dasharray="1" stroke-dashoffset="0"/>
+    </svg>
+    <div class="readout">
+      <div class="time" id="time" role="timer" aria-live="off">25:00</div>
+      <button class="toggle" id="toggle" aria-label="Start timer">start</button>
+    </div>
+  </div>
+</main>
+
+<div class="meta">
+  <span>Sessions today: <b id="count">0</b></span>
+  <span>Space = start / pause · R = reset</span>
+</div>
+
+<button class="cog" id="open" aria-label="Open settings">
+  <svg viewBox="0 0 28 28" fill="currentColor" aria-hidden="true"><path d="M26.965 17.682l-2.927-2.317c.062-.452.104-.913.104-1.383s-.042-.931-.104-1.383l2.937-2.317a.7.7 0 00.167-.896l-2.78-4.81a.7.7 0 00-.85-.31l-3.456 1.39a10.1 10.1 0 00-2.37-1.372l-.52-3.68A.69.69 0 0016.472 1h-5.56a.69.69 0 00-.69.59l-.52 3.68a10.7 10.7 0 00-2.37 1.372L3.876 5.25a.69.69 0 00-.85.31l-2.78 4.81a.7.7 0 00.167.896l2.937 2.317c-.062.452-.104.913-.104 1.383s.042.931.104 1.383L.413 18.667a.7.7 0 00-.167.896l2.78 4.81c.176.3.54.43.85.31l3.456-1.39a10.1 10.1 0 002.37 1.372l.52 3.68c.05.34.34.59.69.59h5.56c.35 0 .64-.25.69-.59l.52-3.68a10.7 10.7 0 002.37-1.372l3.456 1.39c.31.12.674-.01.85-.31l2.78-4.81a.7.7 0 00-.167-.896zM13.692 18.9a4.9 4.9 0 110-9.8 4.9 4.9 0 010 9.8z" transform="translate(.3 .5)"/></svg>
+</button>
+
+<dialog id="dlg" aria-labelledby="st">
+  <form id="form" novalidate>
+    <div class="mh">
+      <h2 id="st">Settings</h2>
+      <button type="button" id="close" aria-label="Close settings"><svg viewBox="0 0 14 14" stroke="#161932" stroke-width="2.2" stroke-linecap="round"><path d="M1 1l12 12M13 1L1 13"/></svg></button>
+    </div>
+    <div class="mb">
+      <section class="group">
+        <h3>Time (minutes)</h3>
+        <div class="nums">
+          <label class="num">pomodoro<span class="stepper"><input type="number" name="pomodoro" min="1" max="90" inputmode="numeric"><div></div></span></label>
+          <label class="num">short break<span class="stepper"><input type="number" name="short" min="1" max="30" inputmode="numeric"><div></div></span></label>
+          <label class="num">long break<span class="stepper"><input type="number" name="long" min="1" max="60" inputmode="numeric"><div></div></span></label>
+        </div>
+      </section>
+      <section class="group">
+        <div class="row"><span>Font</span>
+          <div class="opts" role="radiogroup" aria-label="Font">
+            <label><input type="radio" name="font" value="kumbh"><span class="sw f1">Aa</span></label>
+            <label><input type="radio" name="font" value="slab"><span class="sw f2">Aa</span></label>
+            <label><input type="radio" name="font" value="mono"><span class="sw f3">Aa</span></label>
+          </div></div>
+      </section>
+      <section class="group">
+        <div class="row"><span>Color</span>
+          <div class="opts" role="radiogroup" aria-label="Accent color">
+            <label><input type="radio" name="color" value="#f87070" aria-label="Coral"><span class="sw c" style="background:#f87070"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5"/></svg></span></label>
+            <label><input type="radio" name="color" value="#70f3f8" aria-label="Cyan"><span class="sw c" style="background:#70f3f8"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5"/></svg></span></label>
+            <label><input type="radio" name="color" value="#d881f8" aria-label="Violet"><span class="sw c" style="background:#d881f8"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5"/></svg></span></label>
+          </div></div>
+      </section>
+    </div>
+    <button class="apply" type="submit">Apply</button>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s);   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const FONTS = { kumbh: "'Kumbh Sans',sans-serif", slab: "'Roboto Slab',serif", mono: "'Space Mono',monospace" };
+  const DEFAULTS = { pomodoro: 25, short: 5, long: 15, font: 'kumbh', color: '#f87070' };
+  const KEY = 'focusly:v1';
+
+  const store = {
+    get() { try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY)) }; } catch { return { ...DEFAULTS }; } },
+    set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch {} }
+  };
+  let cfg = store.get();
+
+  const state = { mode: 'pomodoro', running: false, remaining: 0, total: 0, endAt: 0, raf: 0, done: 0 };
+  const el = { time: $('#time'), bar: $('#bar'), toggle: $('#toggle'), dial: $('#dial'), count: $('#count'),
+    pill: $('#pill'), tabs: $$('.tab'), dlg:$('#dlg'), form: $('#form'), toast: $('#toast') };
+
+  const clamp = (n, a, b) => Math.min(b, Math.max(a, Number.isFinite(n) ? n : a));
+  const fmt = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  let toastT;
+  const toast = msg => { el.toast.textContent = msg; el.toast.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.toast.classList.remove('show'), 2600); };
+
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, .25, .5].forEach(t => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(.001, ctx.currentTime + t);
+        g.gain.exponentialRampToValueAtTime(.25, ctx.currentTime + t + .03);
+        g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + t + .2);
+        o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + .22);
+      });
+    } catch {}
+  }
+
+  function render() {
+    const secs = Math.ceil(state.remaining);
+    const progress = state.total ? state.remaining / state.total : 0;
+    el.time.textContent = fmt(secs);
+    el.bar.style.strokeDashoffset = (1 - progress).toFixed(5);
+    document.title = `${fmt(secs)} · Focusly`;
+  }
+  function renderButton() {
+    const finished = state.remaining <= 0;
+    const label = finished ? 'restart' : state.running ? 'pause' : 'start';
+    el.toggle.textContent = label;
+    el.toggle.setAttribute('aria-label', `${label} timer`);
+  }
+  function movePill() {
+    const t = el.tabs.find(b => b.dataset.mode === state.mode);
+    if (!t) return;
+    el.pill.style.width = t.offsetWidth + 'px';
+    el.pill.style.transform = `translateX(${t.offsetLeft}px)`;
+  }
+
+  function tick() {
+    state.remaining = Math.max(0, (state.endAt - performance.now()) / 1000);
+    render();
+    if (state.remaining <= 0) return finish();
+    state.raf = requestAnimationFrame(tick);
+  }
+  function start() {
+    if (state.remaining <= 0) setMode(state.mode);
+    state.running = true;
+    state.endAt = performance.now() + state.remaining * 1000;
+    el.dial.classList.remove('done');
+    cancelAnimationFrame(state.raf);
+    state.raf = requestAnimationFrame(tick);
+    renderButton();
+  }
+  function pause() {
+    state.running = false;
+    cancelAnimationFrame(state.raf);
+    state.remaining = Math.max(0, (state.endAt - performance.now()) / 1000);
+    renderButton();
+  }
+  function finish() {
+    state.running = false; state.remaining = 0; render();
+    el.dial.classList.add('done');
+    if (state.mode === 'pomodoro') { state.done++; el.count.textContent = state.done; }
+    beep(); toast(state.mode === 'pomodoro' ? 'Pomodoro complete — take a break.' : 'Break over — time to focus.');
+    renderButton();
+  }
+  function setMode(mode) {
+    cancelAnimationFrame(state.raf);
+    state.mode = mode; state.running = false;
+    state.total = state.remaining = cfg[mode] * 60;
+    el.dial.classList.remove('done');
+    el.tabs.forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === mode)));
+    render(); renderButton(); movePill();
+  }
+
+  function applyTheme() {
+    const r = document.documentElement.style;
+    r.setProperty('--accent', cfg.color);
+    r.setProperty('--font', FONTS[cfg.font] || FONTS.kumbh);
+  }
+
+  function fillForm() {
+    ['pomodoro', 'short', 'long'].forEach(k => el.form.elements[k].value = cfg[k]);
+    el.form.elements.font.value = cfg.font;
+    el.form.elements.color.value = cfg.color;
+  }
+
+  $$('.stepper').forEach(w => {
+    const input = $('input', w);
+    w.lastElementChild.innerHTML = ['up', 'down'].map(d =>
+      `<button type="button" tabindex="-1" aria-label="${d === 'up' ? 'Increase' : 'Decrease'}" data-d="${d === 'up' ? 1 : -1}"><svg viewBox="0 0 14 8" width="14" height="8" fill="none" stroke="#1e213f" stroke-width="2"><path d="${d === 'up' ? 'M1 7l6-5 6 5' : 'M1 1l6 5 6-5'}"/></svg></button>`).join('');
+    w.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      input.value = clamp((+input.value || 0) + +b.dataset.d, +input.min, +input.max);
+    });
+  });
+
+  $('#open').addEventListener('click', () => { fillForm(); el.dlg.showModal(); });
+  $('#close').addEventListener('click', () => el.dlg.close());
+  el.dlg.addEventListener('click', e => { if (e.target === el.dlg) el.dlg.close(); });
+  
+  el.form.addEventListener('submit', e => {
+    e.preventDefault();
+    const f = el.form.elements, next = { ...cfg };
+    ['pomodoro', 'short', 'long'].forEach(k => next[k] = Math.round(clamp(+f[k].value, +f[k].min, +f[k].max)));
+    next.font = f.font.value || cfg.font; 
+    next.color = f.color.value || cfg.color;
+    cfg = next; 
+    store.set(cfg); 
+    applyTheme(); 
+    setMode(state.mode); 
+    el.dlg.close();
+    toast('Settings saved.');
+  });
+
+  el.tabs.forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  el.toggle.addEventListener('click', () => state.running ? pause() : start());
+  addEventListener('resize', movePill);
+  addEventListener('keydown', e => {
+    if (el.dlg.open || /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.code === 'Space' && e.target === document.body) { e.preventDefault(); state.running ? pause() : start(); }
+    if (e.key.toLowerCase() === 'r') setMode(state.mode);
+  });
+  document.fonts?.ready.then(movePill);
+
+  applyTheme(); setMode('pomodoro');
+})();
+</script>
+</body>
+</html>
